@@ -1,3 +1,6 @@
 [submodule "lufa"]
 	path = lufa
 	url = git@github.com:abcminiuser/lufa.git
+[submodule "tmk_core"]
+	path = tmk_core
+	url = git@github.com:tmk/tmk_core.git

@@ -18,11 +18,14 @@ F_CPU        = 16000000
 F_USB        = $(F_CPU)
 OPTIMIZATION = s
 TARGET       = Keyb
-SRC          = $(TARGET).c Descriptors.c $(LUFA_SRC_USB) tmk_core/common/avr/timer.c tmk_core/common/debug.c tmk_core/common/avr/xprintf.S tmk_core/common/util.c 
+SRC          = $(TARGET).c Descriptors.c $(LUFA_SRC_USB) matrix.c led.c keymap_poker.c
 LUFA_PATH    = ./lufa/LUFA
-CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -IConfig/ -Itmk_core/common/ -Itmk_core/common/avr/
+CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -IConfig/ -Itmk_core/common/
 LD_FLAGS     =
-OPT_DEFS += -DCONSOLE_ENABLE
+
+OPT_DEFS += -DINTERRUPT_CONTROL_ENDPOINT
+TMK_DIR = tmk_core
+TARGET_DIR = .
 
 # Default target
 all:
@@ -37,6 +40,9 @@ include $(LUFA_PATH)/Build/lufa_dfu.mk
 include $(LUFA_PATH)/Build/lufa_hid.mk
 include $(LUFA_PATH)/Build/lufa_avrdude.mk
 include $(LUFA_PATH)/Build/lufa_atprogram.mk
+
+include $(TMK_DIR)/common.mk
+include $(TMK_DIR)/rules.mk
 
 # Target for LED/buzzer to alert when print is done
 with-alert: all
