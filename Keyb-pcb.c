@@ -178,29 +178,26 @@ void matrix_init(void) {
 void  init_cols(void)
 {
     // Input with pull-up(DDR:0, PORT:1)
-    DDRD  &= ~(1<<3 | 1<<2 | 1<<1 | 1<<0 | 1<<4);
-    PORTD |=  (1<<3 | 1<<2 | 1<<1 | 1<<0 | 1<<4);
+    DDRD  &= ~(1<<1 | 1<<0 | 1<<4);
+    PORTD |=  (1<<1 | 1<<0 | 1<<4);
     DDRC  &= ~(1<<6);
     PORTC |=  (1<<6);
     DDRD  &= ~(1<<7);
     PORTD |=  (1<<7);
     DDRE  &= ~(1<<6);
     PORTE |=  (1<<6);
-    DDRB  &= ~(1<<4 | 1<<5);
-    PORTB |=  (1<<4 | 1<<5);
+    DDRB  &= ~(1<<4);
+    PORTB |=  (1<<4);
 }
 
 matrix_row_t read_cols(void){
-	return (PIND&(1<<3) ? 0 : (1<<0)) |
-           (PIND&(1<<2) ? 0 : (1<<1)) |
-           (PIND&(1<<1) ? 0 : (1<<2)) |
-           (PIND&(1<<0) ? 0 : (1<<3)) |
-           (PIND&(1<<4) ? 0 : (1<<4)) |
-           (PINC&(1<<6) ? 0 : (1<<5)) |
-           (PIND&(1<<7) ? 0 : (1<<6)) |
-           (PINE&(1<<6) ? 0 : (1<<7)) |
-           (PINB&(1<<4) ? 0 : (1<<8)) |
-           (PINB&(1<<5) ? 0 : (1<<9));
+	return (PIND&(1<<1) ? 0 : (1<<0)) |
+           (PIND&(1<<0) ? 0 : (1<<1)) |
+           (PIND&(1<<4) ? 0 : (1<<2)) |
+           (PINC&(1<<6) ? 0 : (1<<3)) |
+           (PIND&(1<<7) ? 0 : (1<<4)) |
+           (PINE&(1<<6) ? 0 : (1<<5)) |
+           (PINB&(1<<4) ? 0 : (1<<6));
 }
 
 void matrix_scan(void) {
@@ -224,22 +221,22 @@ void matrix_scan(void) {
  		select_row(i);
 		_delay_us(1);
 		matrix_row_t cols = read_cols();
-		if (i == 2 && cols&(1<<2)) ks.UP = true;
-		if (i == 1 && cols&(1<<2)) ks.DOWN = true;
-		if (i == 1 && cols&(1<<1)) ks.LEFT = true;
-		if (i == 1 && cols&(1<<3)) ks.RIGHT = true;
-		if (i == 2 && cols&(1<<7)) ks.X = true;
-		if (i == 1 && cols&(1<<6)) ks.B = true;
-		if (i == 2 && cols&(1<<6)) ks.Y = true;
-		if (i == 1 && cols&(1<<7)) ks.A = true;
-		if (i == 1 && cols&(1<<8)) ks.R = true;
-		if (i == 2 && cols&(1<<8)) ks.L = true;
-		if (i == 1 && cols&(1<<9)) ks.ZR = true;
-		if (i == 2 && cols&(1<<9)) ks.ZL = true;
+		if (i == 2 && cols&(1<<1)) ks.UP = true;
+		if (i == 1 && cols&(1<<1)) ks.DOWN = true;
+		if (i == 1 && cols&(1<<0)) ks.LEFT = true;
+		if (i == 1 && cols&(1<<2)) ks.RIGHT = true;
+		if (i == 2 && cols&(1<<4)) ks.X = true;
+		if (i == 1 && cols&(1<<3)) ks.B = true;
+		if (i == 2 && cols&(1<<3)) ks.Y = true;
+		if (i == 1 && cols&(1<<4)) ks.A = true;
+		if (i == 1 && cols&(1<<5)) ks.R = true;
+		if (i == 2 && cols&(1<<5)) ks.L = true;
+		if (i == 1 && cols&(1<<6)) ks.ZR = true;
+		if (i == 2 && cols&(1<<6)) ks.ZL = true;
 		if (i == 0 && cols&(1<<4)) ks.CAPTURE = true;
-		if (i == 0 && cols&(1<<5)) ks.HOME = true;
-		if (i == 1 && cols&(1<<4)) ks.MINUS = true;
-		if (i == 1 && cols&(1<<5)) ks.PLUS = true;
+		if (i == 0 && cols&(1<<1)) ks.HOME = true;
+		if (i == 0 && cols&(1<<2)) ks.MINUS = true;
+		if (i == 0 && cols&(1<<3)) ks.PLUS = true;
 		if (matrix_debouncing[i] != cols) {
 			if (debouncing) {
 				dprintf("bounce: %d %d@%02X\n", timer_elapsed(debouncing_time), i, matrix_debouncing[i]^cols);
@@ -271,16 +268,16 @@ void select_row(uint8_t row)
     // Output low(DDR:1, PORT:0) to select
     switch (row) {
         case 0:
+            DDRB  |= (1<<6);
+            PORTB &= ~(1<<6);
+            break;
+        case 1:
             DDRB  |= (1<<3);
             PORTB &= ~(1<<3);
             break;
-        case 1:
+        case 2:
             DDRB  |= (1<<1);
             PORTB &= ~(1<<1);
-            break;
-        case 2:
-            DDRB  |= (1<<6);
-            PORTB &= ~(1<<6);
             break;
     }
 }
