@@ -58,6 +58,10 @@ typedef struct {
 	bool DOWN;
 	bool LEFT;
 	bool RIGHT;
+	bool R_UP;
+	bool R_DOWN;
+	bool R_LEFT;
+	bool R_RIGHT;
 	bool X;
 	bool Y;
 	bool A;
@@ -66,10 +70,17 @@ typedef struct {
 	bool R;
 	bool ZL;
 	bool ZR;
+	bool L3;
+	bool R3;
 	bool CAPTURE;
 	bool HOME;
 	bool MINUS;
 	bool PLUS;
+	bool H_TOP;
+	bool H_BOTTOM;
+	bool H_LEFT;
+	bool H_RIGHT;
+	uint8_t HAT;
 } keystate;
 
 static keystate ks = { false, false, false, false, false, false, false, false, false, false };
@@ -205,6 +216,14 @@ void matrix_scan(void) {
 	ks.DOWN = false;
 	ks.LEFT = false;
 	ks.RIGHT = false;
+	ks.R_UP = false;
+	ks.R_DOWN = false;
+	ks.R_LEFT = false;
+	ks.R_RIGHT = false;
+	ks.H_TOP = false;
+	ks.H_BOTTOM = false;
+	ks.H_LEFT = false;
+	ks.H_RIGHT = false;
 	ks.X = false;
 	ks.B = false;
 	ks.Y = false;
@@ -213,18 +232,21 @@ void matrix_scan(void) {
 	ks.L = false;
 	ks.ZR = false;
 	ks.ZL = false;
+	ks.L3 = false;
+	ks.R3 = false;
 	ks.CAPTURE = false;
 	ks.HOME = false;
 	ks.MINUS = false;
 	ks.PLUS = false;
+	ks.HAT = HAT_CENTER;
 	for (uint8_t i = 0; i < MATRIX_ROWS; i++) {
  		select_row(i);
 		_delay_us(1);
 		matrix_row_t cols = read_cols();
-		if (i == 2 && cols&(1<<1)) ks.UP = true;
-		if (i == 1 && cols&(1<<1)) ks.DOWN = true;
-		if (i == 1 && cols&(1<<0)) ks.LEFT = true;
-		if (i == 1 && cols&(1<<2)) ks.RIGHT = true;
+		if (i == 2 && cols&(1<<1)) ks.H_TOP = true; //up
+		if (i == 1 && cols&(1<<1)) ks.H_BOTTOM = true; //down
+		if (i == 1 && cols&(1<<0)) ks.H_LEFT = true; //left
+		if (i == 1 && cols&(1<<2)) ks.H_RIGHT = true; //right
 		if (i == 2 && cols&(1<<4)) ks.X = true;
 		if (i == 1 && cols&(1<<3)) ks.B = true;
 		if (i == 2 && cols&(1<<3)) ks.Y = true;
@@ -233,10 +255,11 @@ void matrix_scan(void) {
 		if (i == 2 && cols&(1<<5)) ks.L = true;
 		if (i == 1 && cols&(1<<6)) ks.ZR = true;
 		if (i == 2 && cols&(1<<6)) ks.ZL = true;
-		if (i == 0 && cols&(1<<4)) ks.CAPTURE = true;
-		if (i == 0 && cols&(1<<1)) ks.HOME = true;
+		if (i == 0 && cols&(1<<1)) ks.CAPTURE = true;
+		if (i == 0 && cols&(1<<4)) ks.HOME = true;
 		if (i == 0 && cols&(1<<2)) ks.MINUS = true;
 		if (i == 0 && cols&(1<<3)) ks.PLUS = true;
+
 		if (matrix_debouncing[i] != cols) {
 			if (debouncing) {
 				dprintf("bounce: %d %d@%02X\n", timer_elapsed(debouncing_time), i, matrix_debouncing[i]^cols);
@@ -246,6 +269,56 @@ void matrix_scan(void) {
 			debouncing_time = timer_read();
 		}
 		unselect_rows();
+	}
+
+	//HAT SOCD cleaning
+	if (ks.H_TOP && ks.H_BOTTOM) {
+		ks.H_TOP = false;
+		ks.H_BOTTOM = false;
+	}
+	if (ks.H_LEFT && ks.H_RIGHT) {
+		ks.H_LEFT = false;
+		ks.H_RIGHT = false;
+	}
+
+	//HAT INPUT
+	if (ks.H_TOP) {
+		if (ks.H_LEFT) ks.HAT = HAT_TOP_LEFT;
+		else if (ks.H_RIGHT) ks.HAT = HAT_TOP_RIGHT;
+		else ks.HAT = HAT_TOP;
+	}
+	else if (ks.H_BOTTOM) {
+		if (ks.H_LEFT) ks.HAT = HAT_BOTTOM_LEFT;
+		else if (ks.H_RIGHT) ks.HAT = HAT_BOTTOM_RIGHT;
+		else ks.HAT = HAT_BOTTOM;
+	}
+	else {
+		if (ks.H_LEFT) ks.HAT = HAT_LEFT;
+		else if (ks.H_RIGHT) ks.HAT = HAT_RIGHT;
+	}
+
+	//right joystick mod
+	if (ks.ZR) {
+		ks.R_LEFT = ks.H_LEFT;
+		ks.R_RIGHT = ks.H_RIGHT;
+		ks.R_UP = ks.H_TOP;
+		ks.R_DOWN = ks.H_BOTTOM;
+		ks.L3 = ks.MINUS;
+		ks.R3 = ks.PLUS;
+		ks.PLUS = false;
+		ks.HAT = HAT_CENTER;
+	}
+
+	//left joystick mod
+	if (ks.ZL) {
+		ks.LEFT = ks.H_LEFT;
+		ks.RIGHT = ks.H_RIGHT;
+		ks.UP = ks.H_TOP;
+		ks.DOWN = ks.H_BOTTOM;
+		ks.L3 = ks.MINUS;
+		ks.R3 = ks.PLUS;
+		ks.MINUS = false;
+		ks.HAT = HAT_CENTER;
 	}
 
 	if (debouncing && timer_elapsed(debouncing_time) >= DEBOUNCE) {
@@ -492,6 +565,13 @@ void GetNextReport(USB_JoystickReport_Input_t* const ReportData) {
 			if (ks.DOWN) ReportData->LY = STICK_MAX;
 			if (ks.LEFT) ReportData->LX = STICK_MIN;
 			if (ks.RIGHT) ReportData->LX = STICK_MAX;
+			if (ks.R_UP) ReportData->RY = STICK_MIN;
+			if (ks.R_DOWN) ReportData->RY = STICK_MAX;
+			if (ks.R_LEFT) ReportData->RX = STICK_MIN;
+			if (ks.R_RIGHT) ReportData->RX = STICK_MAX;
+			if (ks.L3) ReportData->Button += SWITCH_LCLICK;
+			if (ks.R3) ReportData->Button += SWITCH_RCLICK;
+			ReportData->HAT = ks.HAT;
 /*
 			switch (step[bufindex].button)
 			{
